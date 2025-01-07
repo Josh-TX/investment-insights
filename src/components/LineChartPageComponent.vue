@@ -19,7 +19,7 @@ var lineInputs1: Reactive<LineChartDataInputs> = reactive(localSettingsService.g
 var lineInputs2: Reactive<LineChartDataInputs> = reactive(localSettingsService.getValue("lineChartInputs2") || { mode: "logReturns", equalPrice: true, returnDays: 30, smoothDays: 5, extrapolateDays: 365, drawdownDays: 1});
 
 async function updateData(){
-    var tempTickerArray = tickerInputs.tickers.split(/[^a-zA-Z$]+/).filter(z => !!z);
+    var tempTickerArray = tickerInputs.tickers.split(/[^a-zA-Z0-9_$]+/).filter(z => !!z);
     tickerArray.value = tempTickerArray;
     var priceHistoryPromises = tempTickerArray.map(z => getPriceHistory(z));
     var fundDatas = await Promise.all(priceHistoryPromises);
@@ -47,7 +47,7 @@ updateData();
 </script>
 
 <template>
-    <div style="display: flex; flex-direction: column; height: 100%; box-sizing: border-box; padding: 4px 12px;">
+    <div style="display: flex; flex-direction: column; height: 100%; padding: 4px 12px;">
         <TickerInputComponent/>
         <div style="display: flex; width: 100%; margin-top: 8px; gap: 12px;">
             <div style="width: 100%; background: #333; padding: 8px; border-radius: 4px; box-shadow: 1px 1px 3px #00000055;">

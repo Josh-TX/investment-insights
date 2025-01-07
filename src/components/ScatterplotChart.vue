@@ -230,8 +230,7 @@ function _tryRenderChart() {
                             label = label.substring(0, label.length - 2);
                             props.dataContainer?.seriesLabels
                             return [
-                                "X: " + getDisplayValue(context.parsed.x, "x"), 
-                                "Y: " + getDisplayValue(context.parsed.y, "y"),
+                               "Y: " + getDisplayValue(context.parsed.y, "y") + ", X: " + getDisplayValue(context.parsed.x, "x"), 
                                 label
                             ];
                         }

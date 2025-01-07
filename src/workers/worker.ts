@@ -16,7 +16,7 @@ var operations: AllWorkerOperations = {
     async calculatePoints(request: CalculatePointsRequest): Promise<ScatterplotPoint[]> {
         
         var getValueFunc = function(inputs: ScatterplotAxisInputs, weights: number[]): number{
-            var portfolioFundData = PriceHelpers.getPortfolioDayPrices(request.fundDatas, weights, 365);
+            var portfolioFundData = PriceHelpers.getPortfolioFundData(request.fundDatas, weights, 365);
             if (inputs.mode == "logReturnSD" || inputs.mode == "logLossRMS"){
                 var portfolioReturns = PriceHelpers.getReturns(portfolioFundData, inputs.returnDays);
                 portfolioReturns = PriceHelpers.getExtrapolatedReturns(portfolioReturns, inputs.returnDays, 365);

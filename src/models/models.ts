@@ -46,7 +46,7 @@ export type FundDataType = "price" | "afr" | "logafr";
 
 export type FundData = {
     startDayNumber: number,
-    dataType: FundDataType
+    description?: string | undefined
     values: Float32Array
 }
 
@@ -76,3 +76,8 @@ export type LineData = {
     yAxisTitle: string,
 }
 
+export type PortfolioTicker = {
+    baseName: string,
+    rebalanceDays: number,
+    holdings: Array<{ ticker: string, weight: number}>
+}

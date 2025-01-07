@@ -1,4 +1,4 @@
-import { LineChartDataInputs, ScatterplotAxisInputs, StatInputs } from "../models/models";
+import { LineChartDataInputs, PortfolioTicker, ScatterplotAxisInputs, StatInputs } from "../models/models";
 
 export type LocalSettings = { 
     tickers?: string | undefined,
@@ -12,7 +12,11 @@ export type LocalSettings = {
     lineChartInputs2?: LineChartDataInputs | undefined,
     scatterplotAxisInputsX?: ScatterplotAxisInputs | undefined,
     scatterplotAxisInputsY?: ScatterplotAxisInputs | undefined,
-    statInputs?: StatInputs | undefined
+    statInputs?: StatInputs | undefined,
+    forceStartYearEnabled?: boolean | undefined,
+    forceStartYear?: number | null | undefined,
+    includePure?: boolean | undefined,
+    portfolioTickers?: PortfolioTicker[] | undefined,
 }
 
 class LocalSettingsService {

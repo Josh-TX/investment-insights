@@ -12,6 +12,9 @@ export function getLineDataContainer(
     var seriesLabels = [...tickers];
     var firstCommonDayNumber =  PriceHelpers.getFirstCommonDayNumber(fundDatas);
     var getDataFunc = function(input: LineChartDataInputs): (FundData | null)[] {
+        input.returnDays = Math.min(input.returnDays, 36500);
+        input.extrapolateDays = Math.min(input.extrapolateDays, 36500);
+        input.smoothDays = Math.min(input.smoothDays, 36500);
         var currentFundDatas = fundDatas
         if (input.equalPrice && (input.mode == "price" || input.mode == "maxDrawdown")){
             currentFundDatas = currentFundDatas.map(fundData => PriceHelpers.getEqualizePrices(fundData, firstCommonDayNumber));

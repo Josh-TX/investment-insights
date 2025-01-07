@@ -14,6 +14,8 @@ import { getSD } from '../services/math-helpers';
 
 type TickerStats = {
     ticker: string,
+    description: string,
+    startDate: string,
     return: number,
     maxDrawdown: string,
     sd: number,
@@ -28,7 +30,7 @@ var rmsMatrix: Ref<number[][]> = ref([]);
 
 
 async function updateData(){
-    var tempTickerArray = tickerInputs.tickers.split(/[^a-zA-Z$]+/).filter(z => !!z);
+    var tempTickerArray = tickerInputs.tickers.split(/[^a-zA-Z0-9_$]+/).filter(z => !!z);
     tickerArray.value = tempTickerArray;
     var priceHistoryPromises = tempTickerArray.map(z => getPriceHistory(z));
     var fundDatas = await Promise.all(priceHistoryPromises);
@@ -36,7 +38,9 @@ async function updateData(){
     var logReturns: FundData[] = [];
     var logLosses: FundData[] = [];
     for (var i = 0; i < fundDatas.length; i++){
-        var fundData = fundDatas[i]
+        var fundData = fundDatas[i];
+        var desc = fundData.description ?? "";
+        var startDate = new Date(fundData.startDayNumber * 86400000)
         var afr = PriceHelpers.getAvgAfr(fundData);
         var maxDrawdown = PriceHelpers.getMaxDrawdown(fundData, inputs.drawdownDays)?.drawdown;
         fundData = PriceHelpers.getReturns(fundData, inputs.returnDays);
@@ -50,6 +54,8 @@ async function updateData(){
         var rms = MathHelpers.getRMS(Array.from(fundDataLosses.values));
         tickerStatsArray.push({
             ticker: tempTickerArray[i],
+            description: desc,
+            startDate:  startDate.toLocaleString('en-US', { month: 'short' }) + " " + startDate.getFullYear(),
             return: afr,
             sd: (sd || 0),
             rms: (rms || 0),
@@ -70,7 +76,7 @@ watch(inputs, () => {
     localSettingsService.setValue("statInputs", inputs)
 });
 
-updateData();
+updateData()
 
 function roundTo2 (num: number) { 
     return num == 1 ? 1 : num.toFixed(2) 
@@ -115,45 +121,55 @@ function getCosineColorOpacity(r: number): string {
                 <input v-model.number="inputs.drawdownDays">
             </div>
         </div>
-        <div style="display: flex; gap: 48px;">
-            <table v-if="tickerStats.length">
-                <tr>
-                    <td style="padding: 0 12px;">Ticker</td>
-                    <td style="padding: 0 12px;">Avg return</td>
-                    <td style="padding: 0 12px;">Std Dev</td>
-                    <td style="padding: 0 12px;">Loss RMS</td>
-                    <td style="padding: 0 12px;">Max Drawdown</td>
-                </tr>
-                <tr v-for="(tickerStat) in tickerStats">
-                    <td style="padding: 0 12px;">{{ tickerStat.ticker }}</td>
-                    <td style="padding: 0 12px;">{{ afrToPercent(tickerStat.return) }}</td>
-                    <td style="padding: 0 12px;">{{ logAfrToPerecent(tickerStat.sd) }}</td>
-                    <td style="padding: 0 12px;">{{ logAfrToPerecent(tickerStat.rms) }}</td>
-                    <td style="padding: 0 12px;">{{ tickerStat.maxDrawdown }}</td>
-                </tr>
-            </table>
-            <table v-if="sdMatrix">
-                <tr>
-                    <td style="padding: 0 4px;"></td>
-                    <td style="padding: 0 4px;" v-for="ticker in tickerArray">{{ ticker }}</td>
-                </tr>
-                <tr v-for="(ticker, index) in tickerArray">
-                    <td style="padding: 0 4px;">{{ ticker }}</td>
-                    <td style="padding: 0 4px;" v-for="(r) in sdMatrix![index]" :style="getColorOpacity(r)"
-                        :class="{'bad-cell': r > 0, 'good-cell': r < 0}" >{{ roundTo2(r) }}</td>
-                </tr>
-            </table>
-            <table v-if="rmsMatrix">
-                <tr>
-                    <td style="padding: 0 4px;"></td>
-                    <td style="padding: 0 4px;" v-for="ticker in tickerArray">{{ ticker }}</td>
-                </tr>
-                <tr v-for="(ticker, index) in tickerArray">
-                    <td style="padding: 0 4px;">{{ ticker }}</td>
-                    <td style="padding: 0 4px;" v-for="r in rmsMatrix![index]" :style="getCosineColorOpacity(r)"
-                    :class="{'bad-cell': r > 0.5, 'good-cell': r < 0.5}">{{ roundTo2(r) }}</td>
-                </tr>
-            </table>
+        <div style="display: flex; justify-content: left; margin-top: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(7, auto); gap: 2px 16px;">
+                <h4>Ticker</h4>
+                <h4>Description</h4>
+                <h4>Start Date</h4>
+                <h4>Avg return</h4>
+                <h4>Std Dev</h4>
+                <h4>Loss RMS</h4>
+                <h4>Max Drawdown</h4>
+                <template v-for="(tickerStat) in tickerStats">
+                    <div>{{ tickerStat.ticker }}</div>
+                    <div>{{ tickerStat.description }}</div>
+                    <div>{{ tickerStat.startDate }}</div>
+                    <div>{{ afrToPercent(tickerStat.return) }}</div>
+                    <div>{{ logAfrToPerecent(tickerStat.sd) }}</div>
+                    <div>{{ logAfrToPerecent(tickerStat.rms) }}</div>
+                    <div>{{ tickerStat.maxDrawdown }}</div>
+                </template>
+            </div>
+        </div>
+        <div style="display: flex; gap: 48px; margin-top: 24px;">
+            <div>
+                <h4 style="text-align: center;">Log Return Correlations</h4>
+                <table v-if="sdMatrix">
+                    <tr>
+                        <td style="padding: 0 4px;"></td>
+                        <td style="padding: 0 4px;" v-for="ticker in tickerArray">{{ ticker }}</td>
+                    </tr>
+                    <tr v-for="(ticker, index) in tickerArray">
+                        <td style="padding: 0 4px;">{{ ticker }}</td>
+                        <td style="padding: 0 4px;" v-for="(r) in sdMatrix![index]" :style="getColorOpacity(r)"
+                            :class="{'bad-cell': r > 0, 'good-cell': r < 0}" >{{ roundTo2(r) }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <h4 style="text-align: center;">Log Losses Cosine Similarity</h4>
+                <table v-if="rmsMatrix">
+                    <tr>
+                        <td style="padding: 0 4px;"></td>
+                        <td style="padding: 0 4px;" v-for="ticker in tickerArray">{{ ticker }}</td>
+                    </tr>
+                    <tr v-for="(ticker, index) in tickerArray">
+                        <td style="padding: 0 4px;">{{ ticker }}</td>
+                        <td style="padding: 0 4px;" v-for="r in rmsMatrix![index]" :style="getCosineColorOpacity(r)"
+                        :class="{'bad-cell': r > 0.5, 'good-cell': r < 0.5}">{{ roundTo2(r) }}</td>
+                    </tr>
+                </table>
+            </div>
         </div>
 
     </div>

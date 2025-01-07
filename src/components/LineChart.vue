@@ -176,13 +176,10 @@ function _tryRenderChart() {
                     onClick: (_, legendItem, legend) => {
                         var chart = legend.chart;
                         if (chart.isDatasetVisible(legendItem.datasetIndex!)) {
-                            console.log("hiding ", legendItem.datasetIndex)
                             chart.hide(legendItem.datasetIndex!);
                             if (props.dataContainer!.LineDatas.length > 1){
-                                console.log("and hiding ", legendItem.datasetIndex! + props.dataContainer!.seriesLabels.length)
                                 chart.hide(legendItem.datasetIndex! + props.dataContainer!.seriesLabels.length);
                             }
-                            console.log("datasets", chart.data.datasets);
                             legendItem.hidden = true;
                         } else {
                             chart.show(legendItem.datasetIndex!);

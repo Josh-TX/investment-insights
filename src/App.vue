@@ -2,12 +2,15 @@
 import LineChartPageComponent from './components/LineChartPageComponent.vue';
 import ScatterplotPageComponent from './components/ScatterplotPageComponent.vue';
 import StatsPageComponent from './components/StatsPageComponent.vue';
+import PortfolioPageComponent from './components/PortfolioPageComponent.vue';
+import PortfolioModalComponent from './components/PorfolioModalComponent.vue';
 import { ref, computed } from 'vue';  
 
 const routes: { [key: string]: any } = {
     '/line-chart': LineChartPageComponent,
     '/scatterplot': ScatterplotPageComponent,
-    '/stats': StatsPageComponent
+    '/stats': StatsPageComponent,
+    '/portfolios': PortfolioPageComponent
 }
 
 const currentPath = ref(window.location.hash)
@@ -33,11 +36,13 @@ const currentView = computed(() => {
             <a href="#/line-chart">Line Chart</a> 
             <a href="#/scatterplot">Scatterplot</a> 
             <a href="#/stats">Stats</a>
+            <a href="#/portfolios">Portfolios</a>
         </div>
         <div style="flex: 1 1 0;">
             <component :is="currentView" />
         </div>
     </div>
+    <PortfolioModalComponent></PortfolioModalComponent>
 </template>
 
 <style scoped>

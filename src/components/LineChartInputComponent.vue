@@ -25,12 +25,12 @@ const inputs = defineModel<LineChartDataInputs>("inputs", {required: true})
         <div v-if="inputs.mode == 'returns' || inputs.mode == 'logReturns' || inputs.mode == 'logLosses'">
             <label>Return Period</label>
             <br>
-            <input v-model.number="inputs.returnDays">
+            <input v-model.number="inputs.returnDays" type="number">
         </div>
         <div v-if="inputs.mode == 'returns' || inputs.mode == 'logReturns' || inputs.mode == 'logLosses'">
             <label>Smooth N Days</label>
             <br>
-            <input v-model.number="inputs.smoothDays">
+            <input v-model.number="inputs.smoothDays" type="number">
         </div>
         <div style="padding-top: 24px;" v-if="inputs.mode == 'price' || inputs.mode == 'maxDrawdown'"> 
             <input type="checkbox" v-model.boolean="inputs.equalPrice">
@@ -39,12 +39,12 @@ const inputs = defineModel<LineChartDataInputs>("inputs", {required: true})
         <div v-if="inputs.mode == 'returns' || inputs.mode == 'logReturns' || inputs.mode == 'logLosses'">
             <label>Return Extrapolation</label>
             <br>
-            <input v-model.number="inputs.extrapolateDays">
+            <input v-model.number="inputs.extrapolateDays" type="number">
         </div>
         <div v-if="inputs.mode == 'maxDrawdown'">
             <label>peak & trough days maintained</label>
             <br>
-            <input v-model.number="inputs.drawdownDays">
+            <input v-model.number="inputs.drawdownDays" type="number">
         </div>
     </div>
 </template>

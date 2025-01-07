@@ -23,17 +23,17 @@ const inputs = defineModel<ScatterplotAxisInputs>("inputs", {required: true})
         <div v-if="inputs.mode == 'logReturnSD' || inputs.mode == 'logLossRMS'">
             <label>Return Period</label>
             <br>
-            <input v-model.number="inputs.returnDays">
+            <input v-model.number="inputs.returnDays" type="number">
         </div>
         <div v-if="inputs.mode == 'logReturnSD' || inputs.mode == 'logLossRMS'">
             <label>Smooth N Days</label>
             <br>
-            <input v-model.number="inputs.smoothDays">
+            <input v-model.number="inputs.smoothDays" type="number">
         </div>
         <div v-if="inputs.mode == 'maxDrawdown'">
             <label>peak & trough days maintained</label>
             <br>
-            <input v-model.number="inputs.drawdownDays">
+            <input v-model.number="inputs.drawdownDays" type="number">
         </div>
     </div>
 </template>

@@ -11,9 +11,10 @@ export async function getScatterplotDataContainer(
         filterExpr: string,
         axisInputsX: ScatterplotAxisInputs,
         axisInputsY: ScatterplotAxisInputs,
-        includePure: boolean
+        includePure: boolean,
+        forceStartDayNumber: number | null 
     ): Promise<ScatterplotDataContainer>{
-    var fundDatas = PriceHelpers.getIntersectionDayPricess(fundDatas)
+    var fundDatas = PriceHelpers.getIntersectionFundDatas(fundDatas, forceStartDayNumber);
     var weightss = await workerCaller.getWeightss(
     {
         tickers: tickers,

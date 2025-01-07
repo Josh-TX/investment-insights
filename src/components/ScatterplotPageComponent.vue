@@ -12,18 +12,21 @@ import { debounce } from '../services/debouncer';
 import { getScatterplotDataContainer } from '../services/scatterplotBuilder';
 import { Parser } from 'expr-eval';
 import ScatterplotInputComponent from './ScatterplotInputComponent.vue';
+import { portfolioService } from '../services/portfolioService'
 
 
-var segmentCount = ref(localSettingsService.getValue("segmentCount") || 5);
-var filterExpr = ref(localSettingsService.getValue("filterExpr") || "");
-var highlightExpr = ref(localSettingsService.getValue("highlightExpr") || "");
+var segmentCount = ref(localSettingsService.getValue("segmentCount") ?? 5);
+var filterExpr = ref(localSettingsService.getValue("filterExpr") ?? "AMZN < 4 and _examplePortfolio in [0,5]");
+var highlightExpr = ref(localSettingsService.getValue("highlightExpr") ?? "");
 var dataContainer = ref<ScatterplotDataContainer | null>(null);
-var newestTicker = ref<string | null>(null);
-var newestTickerStart = ref<string | null>(null);
-var includePure = ref<boolean>(true);
-var overrideStart = ref<boolean>(false);
-var axisInputsX: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsX") || { mode: "return", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
-var axisInputsY: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsY") || { mode: "logReturnSD", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
+var includePure = ref<boolean>(localSettingsService.getValue("includePure") ?? false);
+var forceStartYearEnabled = ref<boolean>(localSettingsService.getValue("forceStartYearEnabled") ?? false);
+var forceStartYear = ref<number | null>(localSettingsService.getValue("forceStartYear") ?? null);
+var startDateMessage = ref<string>("");
+var startDateWarning = ref<boolean>(false);
+
+var axisInputsY: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsY") || { mode: "return", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
+var axisInputsX: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsX") || { mode: "logReturnSD", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
 var highlightedIndexes: ShallowRef<number[]> = shallowRef([]);
 var selectedWeightss: ShallowRef<number[][]> = shallowRef([]);
 
@@ -32,6 +35,15 @@ watch(segmentCount, () => {
 });
 watch(filterExpr, () => {
     localSettingsService.setValue("filterExpr", filterExpr.value);
+});
+watch(forceStartYearEnabled, () => {
+    localSettingsService.setValue("forceStartYearEnabled", forceStartYearEnabled.value);
+});
+watch(forceStartYear, () => {
+    localSettingsService.setValue("forceStartYear", forceStartYear.value);
+});
+watch(includePure, () => {
+    localSettingsService.setValue("includePure", includePure.value);
 });
 watch(highlightExpr, () => {
     localSettingsService.setValue("highlightExpr", highlightExpr.value);
@@ -43,15 +55,34 @@ watch(axisInputsX, () => {
 watch(axisInputsY, () => {
     localSettingsService.setValue("scatterplotAxisInputsY", axisInputsY)
 });
+watch(axisInputsY, () => {
+    localSettingsService.setValue("scatterplotAxisInputsY", axisInputsY)
+});
+
 
 async function generate() {
-    var tickerArray = tickerInputs.tickers.split(/[^a-zA-Z$]+/).filter(z => !!z);
+    var tickerArray = tickerInputs.tickers.split(/[^a-zA-Z0-9_$]+/).filter(z => !!z);
     var promises = tickerArray.map(z => getPriceHistory(z));
     var fundDatas = await Promise.all(promises);
-    var newestIndex = fundDatas.reduce((index, fundData, i) => fundData.startDayNumber > fundDatas[index].startDayNumber ? i : index, 0);
-    newestTicker.value = tickerArray[newestIndex];
-    newestTickerStart.value = new Date(fundDatas[newestIndex].startDayNumber * 86400000).toISOString().split('T')[0];
-    dataContainer.value =  await getScatterplotDataContainer(tickerArray, fundDatas, segmentCount.value, filterExpr.value, axisInputsX, axisInputsY, includePure.value);
+    var forceStartDayNumber = forceStartYearEnabled.value && forceStartYear.value != null ? Math.floor(new Date(forceStartYear.value, 0, 1).getTime() / 86400000) : null;
+    var newestIndex = fundDatas.reduce((prev, fundData, i) => fundData.startDayNumber > fundDatas[prev].startDayNumber ? i : prev, 0);
+    startDateWarning.value = false;
+    if (forceStartDayNumber != null && forceStartDayNumber > fundDatas[newestIndex].startDayNumber){
+        if (forceStartYear.value! > new Date().getFullYear()){
+            alert("invalid year");
+            return;
+        }
+        startDateMessage.value = "force start " +  new Date(forceStartDayNumber * 86400000).toISOString().split('T')[0];
+    } else {
+        startDateMessage.value = tickerArray[newestIndex] + " started " +  new Date(fundDatas[newestIndex].startDayNumber * 86400000).toISOString().split('T')[0];
+        var twoYearsPrior = fundDatas[newestIndex].startDayNumber - (365 * 2);
+        if (forceStartYearEnabled.value){
+            startDateWarning.value = true;
+        } else if (fundDatas.filter(z => z.startDayNumber >= twoYearsPrior).length == 1){
+            startDateWarning.value = true; //no other funds are within 2 years of the most recent
+        }
+    }
+    dataContainer.value =  await getScatterplotDataContainer(tickerArray, fundDatas, segmentCount.value, filterExpr.value, axisInputsX, axisInputsY, includePure.value, forceStartDayNumber);
     updateHighlightedIndexes();
 }
 
@@ -86,6 +117,11 @@ function updateHighlightedIndexes() {
             }
         }
     }
+}
+
+function createPortfolio(){
+    var tickerArray = tickerInputs.tickers.split(/[^a-zA-Z0-9_$]+/).filter(z => !!z);
+    portfolioService.startAddFromScatterplot(tickerArray, selectedWeightss.value[0]);
 }
 
 function getTitle(axis: "x" | "y"): string{
@@ -123,16 +159,16 @@ async function pointClicked(weightss: number[][]) {
 </script>
 
 <template>
-    <div style="display: flex; flex-direction: column; height: 100%; box-sizing: border-box; padding: 4px 12px;">
+    <div style="display: flex; flex-direction: column; height: 100%; padding: 4px 12px;">
         <TickerInputComponent />
         <div style="display: flex; width: 100%; margin-top: 8px; gap: 12px;">
-            <div style="width: 100%; background: #333; padding: 8px; border-radius: 4px; box-shadow: 1px 1px 3px #00000055;">
-                <div style="line-height: 1rem; margin-bottom: 2px;">X-axis</div>
-                <ScatterplotInputComponent v-model:inputs="axisInputsX"></ScatterplotInputComponent>
-            </div>
-            <div style="width: 100%; background: #333; padding: 8px; border-radius: 4px; box-shadow: 1px 1px 3px #00000055;">
-                <div style="line-height: 1rem; margin-bottom: 2px;">Y-axis</div>
+            <div style="width: 100%; background: #333; padding: 8px; border-radius: 4px; box-shadow: 1px 1px 3px #00000055; display: flex">
+                <div class="y-axis-input-label">Y-axis</div>
                 <ScatterplotInputComponent v-model:inputs="axisInputsY"></ScatterplotInputComponent>
+            </div>
+            <div style="width: 100%; background: #333; padding: 8px; border-radius: 4px; box-shadow: 1px 1px 3px #00000055; display: flex; align-items: center;">
+                <div style="line-height: 1rem; margin-right: 8px;">X-axis</div>
+                <ScatterplotInputComponent v-model:inputs="axisInputsX"></ScatterplotInputComponent>
             </div>
         </div>
         <div style="display: flex; gap: 16px;">
@@ -151,39 +187,46 @@ async function pointClicked(weightss: number[][]) {
                 </select>
             </div>
             <div>
-                <label><input type="checkbox" class="checkbox-fix" v-model="overrideStart" style="margin: 0 6px 0 0;">Force Start Date</label>
+                <label><input type="checkbox" class="checkbox-fix" v-model="forceStartYearEnabled" style="margin: 0 6px 0 0;">Force Start Year</label>
                 <br>
-                <input type="date" style="width: 100%;" :disabled="!overrideStart">
+                <input type="number" style="max-width: 125px;" :disabled="!forceStartYearEnabled" :placeholder="forceStartYearEnabled ? '' : '(disabled)'" v-model="forceStartYear">
             </div>
             <div class="invisible" :class="{'visible': !!filterExpr}" style="text-align: center;;">
                 <label>&nbsp;</label>
                 <br>
-                <label><input type="checkbox" class="checkbox-fix" v-model="includePure"> Include pure portfolios</label>
+                <label><input type="checkbox" class="checkbox-fix" v-model="includePure">Include pure portfolios</label>
             </div>
-            <div style="flex: 1; padding-right: 8px;">
+            <div style="flex: 1;">
                 <label>Filter Portfolios by Expression</label>
                 <br>
                 <input v-model="filterExpr" style="width: 100%">
             </div>
-            <button @click="generate">Generate</button>
+            <div style="padding-top: 7px">
+                <button @click="generate" style="margin-bottom: -1px;">Generate</button>
+            </div>
         </div>
-        <div style="border-top: 1px solid #2D2D2D; height: 1px; margin: 8px 0 2px 0;"></div>
+        <div class="h1" style="margin: 8px 0 2px 0;"></div>
         <div style="display: flex; gap: 16px;">
-            <div style="flex: 1; padding-right: 8px;">
+            <div style="flex: 1;">
                 <label>Highlight Portfolios by Expression</label>
                 <br>
                 <input v-model="highlightExpr" style="width: 100%">
             </div>
-            <div style="flex: 1; padding-right: 8px;" class="invisible" :class="{'visible': !!selectedWeightss.length}">
-                <label>Selected Portfolio</label>
-                <br>
-                <span v-if="selectedWeightss.length" style="font-weight: 500; color: #aaa;">{{ getSelectedPortfolioLabel(selectedWeightss[0]) }}</span>
+            <div style="flex: 1; display: flex;" class="invisible" :class="{'visible': !!selectedWeightss.length}">
+                <div style="flex: 1;">
+                    <label>Selected Portfolio</label>
+                    <br>
+                    <span v-if="selectedWeightss.length" style="font-weight: 500; color: #aaa;">{{ getSelectedPortfolioLabel(selectedWeightss[0]) }}</span>
+                </div>
+                <div>
+                    <button @click="createPortfolio">Create Portfolio Ticker</button>
+                </div>
             </div>
         </div>
         <div class="scatterplot-container">
             <ScatterplotChart :dataContainer="dataContainer" :highlightedIndexes="highlightedIndexes" @point-clicked="pointClicked">
             </ScatterplotChart>
-            <div v-if="newestTicker" class="newest-ticker">{{ newestTicker }} began {{ newestTickerStart }}</div>
+            <div v-if="startDateMessage" class="start-date-label" :class="{warning: startDateWarning}">{{ startDateMessage }}</div>
             <h2 v-if="!dataContainer" class="not-generated-msg">Click "Generate" to compute possible portfolios</h2>
             <div style="position: absolute; left: 0; width: 30px; top: 0; bottom: 30px;" class="y-label-container">
                 <span class="color-label y-label-top good" v-if="axisInputsY.mode == 'return'">better</span>
@@ -223,6 +266,16 @@ async function pointClicked(weightss: number[][]) {
 }
 .bad{
     color: red;
+}
+
+.y-axis-input-label {
+    position: relative;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 5px;
 }
 
 .y-label-container {
@@ -265,23 +318,20 @@ async function pointClicked(weightss: number[][]) {
     opacity: 0.4;
 }
 
-.newest-ticker {
+.start-date-label {
+    pointer-events: none;
     position: absolute;
     top: 0;
     right: 0;
     opacity: 0.6;
 }
 
-.invisible{
-    opacity: 0;
-    user-select: none;
-}
-.visible{
-    opacity: 1;
-}
-
 .checkbox-fix{
     position: relative;
     top: 1px;
+}
+
+.warning{
+    color: rgb(255, 255, 103)
 }
 </style>

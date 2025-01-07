@@ -4,11 +4,14 @@ import * as MathHelpers from "./math-helpers";
 var log2 = Math.log(2);
 
 /**
- * for each dayPrices, filters it to just DayNumbers shared by all the provided dayPricess
+ * for each FundData, filters it to just DayNumbers shared by all the provided fundDatas
  */
-export function getIntersectionDayPricess(fundDatas: FundData[]): FundData[] {
+export function getIntersectionFundDatas(fundDatas: FundData[], forceStartDayNumber: number | null = null): FundData[] {
     if (fundDatas.length === 0) return [];
     var maxStartDayNumber = Math.max(...fundDatas.map(z => z.startDayNumber));
+    if (forceStartDayNumber != null){
+        maxStartDayNumber = Math.max(maxStartDayNumber, forceStartDayNumber);
+    }
     var minEndDayNumber = Math.min(...fundDatas.map(z => z.startDayNumber + z.values.length));
     return fundDatas.map(fundData => {
         var trimStart = maxStartDayNumber - fundData.startDayNumber;
@@ -43,7 +46,6 @@ export function getReturns(fundData: FundData, returnDays: number): FundData {
     }
     return {
         startDayNumber: fundData.startDayNumber + returnDays,
-        dataType: "afr",
         values: newValues
     };
 }
@@ -55,7 +57,6 @@ export function getLogReturns(fundData: FundData): FundData {
     }
     return {
         startDayNumber: fundData.startDayNumber,
-        dataType: fundData.dataType,
         values: newValues
     };
 }
@@ -76,7 +77,6 @@ export function getEqualizePrices(fundData: FundData, firstCommonDayNumber: numb
     return {
         values: newValues,
         startDayNumber: fundData.startDayNumber,
-        dataType: fundData.dataType
     }
 }
 
@@ -88,7 +88,6 @@ export function getExponentReturns(fundData: FundData): FundData {
     }
     return {
         startDayNumber: fundData.startDayNumber,
-        dataType: "afr",
         values: newValues
     };
 }
@@ -101,7 +100,6 @@ export function getExtrapolatedReturns(fundData: FundData, returnDays: number, e
     }
     return {
         startDayNumber: fundData.startDayNumber,
-        dataType: fundData.dataType,
         values: newValues
     };
 }
@@ -113,7 +111,6 @@ export function getLosses(fundData: FundData): FundData {
     }
     return {
         startDayNumber: fundData.startDayNumber,
-        dataType: "logafr",
         values: newValues
     };
 }
@@ -132,7 +129,12 @@ export function getSmoothData(fundData: FundData, smoothDays: number): FundData 
         count++;
     }
     for (var i = 0; i < oldValues.length - 1; i++) {
-        newValues[i] = sum / count
+        newValues[i] = sum / count;
+        if (isNaN(newValues[i])){
+            console.warn("Some errors occured in the calculation. Likely involving infinity and some extremely inputs");
+            sum = 0;
+            newValues[i] = 0;
+        }
         if (leftIndex == i - sideDays){
             sum -= oldValues[leftIndex];
             leftIndex++;
@@ -149,7 +151,6 @@ export function getSmoothData(fundData: FundData, smoothDays: number): FundData 
     newValues[newValues.length - 1] = sum / count
     return {
         startDayNumber: fundData.startDayNumber,
-        dataType: fundData.dataType,
         values: newValues
     };
 }
@@ -166,9 +167,8 @@ export function getUnionDayNumbers(fundDatas: FundData[]): number[] {
 }
 
 /**
- * Maps each dayNumbers to the corresponding dayVal value. Uses null if there is no corresponding dayVal.
+ * Converts the funddata.values to a number array that's aligned with the dayNumbers. 
  * @param dayNumbers A list of dayNumbers. Determines the output array length
- * @param dayVals Must already be sorted by timestamp. Could be any type of dayVal list (price, returns, logReturns, etc.)
  * @returns a list a (number | null)[] who's length will match the length of dayNumbers.length
  */
 export function matchDataToDayNumbers(dayNumbers: number[], fundData: FundData | null): (number | null)[] {
@@ -188,7 +188,6 @@ export function matchDataToDayNumbers(dayNumbers: number[], fundData: FundData |
 
 /**
  * Gets the average annual factor return
- * @param dayPrices a list of dayPrices (the stock's value)
  */
 export function getAvgAfr(fundData: FundData): number {
     var lastVal = fundData.values[fundData.values.length - 1];
@@ -214,7 +213,7 @@ export function everyNthItem<T>(arr: T[], n: number): T[] {
  * @param weights a list of weights for desired holding of each stock. Magnitude doesn't matter, just relative proportion
  * @param rebalanceDays how often (in days) the portfolio's holdings should be redistributed to match the weights
  */
-export function getPortfolioDayPrices(fundDatas: FundData[], weights: number[], rebalanceDays: number): FundData {
+export function getPortfolioFundData(fundDatas: FundData[], weights: number[], rebalanceDays: number): FundData {
     if (Math.min(...fundDatas.map(z => z.values.length)) != Math.max(...fundDatas.map(z => z.values.length))) {
         throw "all fundDatas must have the same values length";
     }
@@ -252,7 +251,6 @@ export function getPortfolioDayPrices(fundDatas: FundData[], weights: number[], 
     }
     return {
         startDayNumber: fundDatas[0].startDayNumber,
-        dataType: "price",
         values: newValues
     };
 }
@@ -309,7 +307,6 @@ export function getMaxDrawdown(fundData: FundData, daysMaintained: number): { dr
             drawdown: maxDrawdown,
             fundData: {
                 startDayNumber: fundData.startDayNumber + drawdownStartInd,
-                dataType: "price",
                 values: newValues
             }
         };
