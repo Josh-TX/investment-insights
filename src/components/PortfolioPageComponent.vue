@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { PortfolioTicker } from "../models/models";
 import { portfolioService } from "../services/portfolioService";
 
 function open(){
     portfolioService.startAddBlank();
+}
+
+function copy(portfolio: PortfolioTicker){
+    var str = portfolio.holdings.map(z => z.ticker).join(" ");
+    navigator.clipboard.writeText(str);
 }
 </script>
 
@@ -19,11 +25,14 @@ function open(){
                         <div> {{ holding.ticker }}</div>
                         <div>{{ holding.weight }}%</div>
                     </template>
-                    <div></div>
+                    <div style="grid-row-start: span 2;">
+                        <button style="padding: 4px 12px; font-size: 0.75em;" @click="copy(portfolio)">📄 copy tickers</button>
+                    </div>
                 </div>
             </div>
             <div style="position: absolute; right: 0; top: 0;">
                 <button style="padding: 4px 12px; margin: 8px;" @click="portfolioService.startEdit(i)">Edit</button>
+                <button style="padding: 4px 12px; margin: 8px;" @click="portfolioService.duplicate(i)">Duplicate</button>
                 <button style="padding: 4px 12px; margin: 8px;" @click="portfolioService.delete(portfolio)">Delete</button>
             </div>
         </div>

@@ -18,13 +18,13 @@ h1,h2,h3,h4 {
 }
 
 a {
-  font-weight: 500;
-  color: #c4d2ff;
+  color: #67b3ff;
   text-decoration: inherit;
 }
-a:hover {
-  color: #ffffff;
+a:hover{
+  text-decoration: underline;
 }
+
 * {
   box-sizing: border-box;
 }
@@ -87,7 +87,7 @@ input[type="number"] {
   height: 1px;
 }
 
-@media (prefers-color-scheme: light) {
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #ffffff;
@@ -98,4 +98,4 @@ input[type="number"] {
   button {
     background-color: #f9f9f9;
   }
-}
+} */

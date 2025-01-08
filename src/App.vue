@@ -33,10 +33,10 @@ const currentView = computed(() => {
 <template>
     <div style="height: 100%; display: flex; flex-direction: column">
         <div style="display: flex;" class="navbar">
-            <a href="#/line-chart">Line Chart</a> 
-            <a href="#/scatterplot">Scatterplot</a> 
-            <a href="#/stats">Stats</a>
-            <a href="#/portfolios">Portfolios</a>
+            <a class="nav-item" href="#/line-chart">Line Chart</a> 
+            <a class="nav-item" href="#/scatterplot">Scatterplot</a> 
+            <a class="nav-item" href="#/stats">Stats</a>
+            <a class="nav-item" href="#/portfolios">Portfolios</a>
         </div>
         <div style="flex: 1 1 0;">
             <component :is="currentView" />
@@ -52,8 +52,12 @@ const currentView = computed(() => {
         background: rgba(0,0,0,0.1);
         box-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-    .navbar > a {
-        font-weight: 400;
+    .nav-item {
+        color: #cacaca;
+        text-decoration: inherit;
         padding: 0 12px;
+    }
+    .nav-item:hover {
+        color: #ffffff;
     }
 </style>

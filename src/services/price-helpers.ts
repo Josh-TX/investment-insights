@@ -22,10 +22,23 @@ export function getIntersectionFundDatas(fundDatas: FundData[], forceStartDayNum
         }
         return {
             startDayNumber: maxStartDayNumber,
-            dataType: "price",
             values: newValues
         };
     });
+}
+
+/**
+ * for each FundData, filters it to just DayNumbers shared by all the provided fundDatas
+ */
+export function filterFundData(fundData: FundData, startDayNumber: number): FundData {
+    if (fundData.startDayNumber > startDayNumber){
+        return fundData;
+    }
+    var dayDiff = startDayNumber - fundData.startDayNumber;
+    return {
+        startDayNumber: startDayNumber,
+        values: fundData.values.subarray(dayDiff)
+    };
 }
 
 /**

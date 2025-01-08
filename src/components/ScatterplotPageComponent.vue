@@ -25,8 +25,8 @@ var forceStartYear = ref<number | null>(localSettingsService.getValue("forceStar
 var startDateMessage = ref<string>("");
 var startDateWarning = ref<boolean>(false);
 
-var axisInputsY: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsY") || { mode: "return", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
-var axisInputsX: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsX") || { mode: "logReturnSD", returnDays: 30, smoothDays: 5, drawdownDays: 1, riskAdjSD: -0.5});
+var axisInputsY: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsY") || { mode: "return", returnDays: 30, smoothDays: 30, drawdownDays: 1, riskAdjSD: -0.5});
+var axisInputsX: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsX") || { mode: "logReturnSD", returnDays: 30, smoothDays: 30, drawdownDays: 1, riskAdjSD: -0.5});
 var highlightedIndexes: ShallowRef<number[]> = shallowRef([]);
 var selectedWeightss: ShallowRef<number[][]> = shallowRef([]);
 

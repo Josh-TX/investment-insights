@@ -15,7 +15,9 @@ import { getSD } from '../services/math-helpers';
 type TickerStats = {
     ticker: string,
     description: string,
-    startDate: string,
+    createDate: string,
+    startPrice: string,
+    endPrice: string,
     return: number,
     maxDrawdown: string,
     sd: number,
@@ -23,10 +25,11 @@ type TickerStats = {
 }
 
 var tickerArray: Ref<string[] | null> = ref(null);
-var inputs: Reactive<StatInputs> = reactive(localSettingsService.getValue("statInputs") || { mode: "logReturns", returnDays: 30, smoothDays: 5, extrapolateDays: 365, drawdownDays: 1});
+var inputs: Reactive<StatInputs> = reactive(localSettingsService.getValue("statInputs") || { mode: "logReturns", returnDays: 30, smoothDays: 30, extrapolateDays: 365, drawdownDays: 1, dateFilterMode: "No Filters"});
 var tickerStats: Ref<TickerStats[]> = ref([]);
 var sdMatrix: Ref<number[][]> = ref([]);
 var rmsMatrix: Ref<number[][]> = ref([]);
+var dateFilterMessage = ref<string>("");
 
 
 async function updateData(){
@@ -34,13 +37,26 @@ async function updateData(){
     tickerArray.value = tempTickerArray;
     var priceHistoryPromises = tempTickerArray.map(z => getPriceHistory(z));
     var fundDatas = await Promise.all(priceHistoryPromises);
+    var descriptions = fundDatas.map(fundData => fundData.description);
+    var createDates = fundDatas.map(fundData => new Date(fundData.startDayNumber * 86400000));
+    if (inputs.dateFilterMode == "Common Start Date"){
+        var commonDayNumber = PriceHelpers.getFirstCommonDayNumber(fundDatas);
+        fundDatas = fundDatas.map(fundData => PriceHelpers.filterFundData(fundData, commonDayNumber));
+        dateFilterMessage.value = "filtered to " + new Date(commonDayNumber * 86400000).toISOString().split('T')[0];
+    } else if (!isNaN(parseFloat(inputs.dateFilterMode))){
+        var years = parseFloat(inputs.dateFilterMode)
+        var todayDayNumber = Math.floor((new Date()).getTime() / 86400000);
+        var startDayNumber = todayDayNumber - Math.floor(years * 365.25);
+        fundDatas = fundDatas.map(fundData => PriceHelpers.filterFundData(fundData, startDayNumber));
+        dateFilterMessage.value = "filtered to " + new Date(startDayNumber * 86400000).toISOString().split('T')[0];
+    } else {
+        dateFilterMessage.value = ""
+    }
     var tickerStatsArray: TickerStats[] = [];
     var logReturns: FundData[] = [];
     var logLosses: FundData[] = [];
     for (var i = 0; i < fundDatas.length; i++){
         var fundData = fundDatas[i];
-        var desc = fundData.description ?? "";
-        var startDate = new Date(fundData.startDayNumber * 86400000)
         var afr = PriceHelpers.getAvgAfr(fundData);
         var maxDrawdown = PriceHelpers.getMaxDrawdown(fundData, inputs.drawdownDays)?.drawdown;
         fundData = PriceHelpers.getReturns(fundData, inputs.returnDays);
@@ -54,8 +70,10 @@ async function updateData(){
         var rms = MathHelpers.getRMS(Array.from(fundDataLosses.values));
         tickerStatsArray.push({
             ticker: tempTickerArray[i],
-            description: desc,
-            startDate:  startDate.toLocaleString('en-US', { month: 'short' }) + " " + startDate.getFullYear(),
+            description: descriptions[i] ?? "",
+            createDate: createDates[i].toLocaleString('en-US', { month: 'short' }) + " " + createDates[i].getFullYear(),
+            startPrice: "$" + fundDatas[i].values[0].toFixed(2),
+            endPrice: "$" + fundDatas[i].values[fundDatas[i].values.length - 1].toFixed(2),
             return: afr,
             sd: (sd || 0),
             rms: (rms || 0),
@@ -99,7 +117,7 @@ function getCosineColorOpacity(r: number): string {
 <template>
     <div style="padding: 4px 12px;">
         <TickerInputComponent/>
-        <div style="display: flex; gap: 16px;">
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
             <div>
                 <label>Return Period</label>
                 <br>
@@ -120,20 +138,37 @@ function getCosineColorOpacity(r: number): string {
                 <br>
                 <input v-model.number="inputs.drawdownDays">
             </div>
+            <div>
+                <label>Date Filter</label>
+                <br>
+                <select v-model="inputs.dateFilterMode">
+                    <option>No Filters</option>
+                    <option>Common Start Date</option>
+                    <option>1 year ago</option>
+                    <option>5 years ago</option>
+                    <option>10 years ago</option>
+                    <option>15 years ago</option>
+                </select>
+            </div>
         </div>
-        <div style="display: flex; justify-content: left; margin-top: 20px;">
-            <div style="display: grid; grid-template-columns: repeat(7, auto); gap: 2px 16px;">
+        <div v-if="dateFilterMessage" style="font-size: 0.75em;">{{ dateFilterMessage }}</div>
+        <div style="display: flex; justify-content: left;">
+            <div style="display: grid; grid-template-columns: repeat(9, auto); gap: 2px 16px;">
                 <h4>Ticker</h4>
                 <h4>Description</h4>
-                <h4>Start Date</h4>
-                <h4>Avg return</h4>
+                <h4>Created</h4>
+                <h4>Start Price<span v-if="dateFilterMessage">*</span></h4>
+                <h4>End Price</h4>
+                <h4>Avg APR</h4>
                 <h4>Std Dev</h4>
                 <h4>Loss RMS</h4>
                 <h4>Max Drawdown</h4>
                 <template v-for="(tickerStat) in tickerStats">
                     <div>{{ tickerStat.ticker }}</div>
                     <div>{{ tickerStat.description }}</div>
-                    <div>{{ tickerStat.startDate }}</div>
+                    <div>{{ tickerStat.createDate }}</div>
+                    <div style="text-align: right;">{{ tickerStat.startPrice }}</div>
+                    <div style="text-align: right;">{{ tickerStat.endPrice }}</div>
                     <div>{{ afrToPercent(tickerStat.return) }}</div>
                     <div>{{ logAfrToPerecent(tickerStat.sd) }}</div>
                     <div>{{ logAfrToPerecent(tickerStat.rms) }}</div>

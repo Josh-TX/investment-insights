@@ -28,6 +28,7 @@ class PortfolioService {
             holdings: holdings
         }
         this.mode.value = "Create"
+        this._editIndex = null;
         this.isModalOpen.value = true;
     }
     startAddBlank(){
@@ -36,12 +37,23 @@ class PortfolioService {
             rebalanceDays: 365,
             holdings: [{ticker: "", weight: 0}]
         }
+        this.mode.value = "Create";
+        this._editIndex = null;
+        this.isModalOpen.value = true;
+    }
+    duplicate(index: number){
+        this.workingPorfolioTicker.value = {
+            baseName: "",
+            rebalanceDays: this.portfolioTickers.value[index].rebalanceDays,
+            holdings: this.portfolioTickers.value[index].holdings.map(z => ({...z}))
+        };
         this.mode.value = "Create"
+        this._editIndex = null;
         this.isModalOpen.value = true;
     }
     startEdit(index: number){
-        this.mode.value = "Edit"
         this.workingPorfolioTicker.value = this.portfolioTickers.value[index];
+        this.mode.value = "Edit"
         this.isModalOpen.value = true;
         this._editIndex = index;
     }

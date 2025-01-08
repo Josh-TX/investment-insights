@@ -18,6 +18,7 @@ export type StatInputs = {
     smoothDays: number,
     extrapolateDays: number,
     drawdownDays: number,
+    dateFilterMode: string,
 }
 
 export type ScatterplotAxisMode = "return" | "logReturnSD" | "logLossRMS" | "maxDrawdown"
@@ -41,8 +42,6 @@ export type ScatterplotPoint = {
     x: number,
     y: number
 }
-
-export type FundDataType = "price" | "afr" | "logafr";
 
 export type FundData = {
     startDayNumber: number,
