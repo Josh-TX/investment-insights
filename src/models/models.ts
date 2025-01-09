@@ -59,8 +59,9 @@ export type GetWeightsRequest = {
 export type CalculatePointsRequest = {
     fundDatas: FundData[];
     weightss: number[][];
-    axisInputsX: ScatterplotAxisInputs,
-    axisInputsY: ScatterplotAxisInputs
+    rebalanceDays: number;
+    axisInputsX: ScatterplotAxisInputs;
+    axisInputsY: ScatterplotAxisInputs;
 }
 
 export type LineDataContainer = {

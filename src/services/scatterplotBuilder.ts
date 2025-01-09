@@ -11,6 +11,7 @@ export async function getScatterplotDataContainer(
         filterExpr: string,
         axisInputsX: ScatterplotAxisInputs,
         axisInputsY: ScatterplotAxisInputs,
+        rebalanceDays: number,
         includePure: boolean,
         forceStartDayNumber: number | null 
     ): Promise<ScatterplotDataContainer>{
@@ -54,6 +55,7 @@ export async function getScatterplotDataContainer(
         var promise = workerCaller.calculatePoints({
             fundDatas: fundDatas,
             weightss: weightsSection,
+            rebalanceDays: rebalanceDays,
             axisInputsX: {...axisInputsX},
             axisInputsY: {...axisInputsY}
         });

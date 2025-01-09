@@ -16,6 +16,7 @@ export type LocalSettings = {
     forceStartYearEnabled?: boolean | undefined,
     forceStartYear?: number | null | undefined,
     includePure?: boolean | undefined,
+    rebalanceDays?: number | undefined,
     portfolioTickers?: PortfolioTicker[] | undefined,
 }
 

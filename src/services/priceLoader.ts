@@ -1,6 +1,5 @@
 import { FundData } from "../models/models";
 import { pricesDB } from "./db";
-import { moneyMarketPrices } from "./moneyMarketPrices";
 import { portfolioService } from "./portfolioService";
 import * as PriceHelpers from "../services/price-helpers";
 
@@ -11,15 +10,12 @@ export async function getPriceHistory(ticker: string): Promise<FundData> {
     if (pricesMap[ticker]){
         return pricesMap[ticker];
     }
-    if (ticker == "$"){
-        return getMoneyMarket();
-    }
-    if (ticker.startsWith("_")){
+    if (ticker.startsWith("$")){
         var portfolioTicker = portfolioService.portfolioTickers.value.find(z => z.baseName.toLowerCase() == ticker.slice(1).toLowerCase());
         if (!portfolioTicker){
             throw "no portfolio ticker setup with basename " + ticker.slice(1).toLowerCase();
         }
-        if (portfolioTicker.holdings.some(z => z.ticker.startsWith("_"))){
+        if (portfolioTicker.holdings.some(z => z.ticker.startsWith("$"))){
             throw "no recursive portfolios allowed";
         }
         var priceHistoryPromises = portfolioTicker.holdings.map(z => getPriceHistory(z.ticker));
@@ -77,12 +73,6 @@ function convertToFundData(prices: number[], dayNumbers: number[], description: 
         description: description,
         values: values
     };
-}
-
-function getMoneyMarket(): FundData {
-    var dayNumbers = moneyMarketPrices.map(z => z[0]);
-    var prices = moneyMarketPrices.map(z => z[1]);
-    return convertToFundData(prices, dayNumbers, "money market (VMFXX)");
 }
 
 function getProxiedUrl(targetUrl: string){

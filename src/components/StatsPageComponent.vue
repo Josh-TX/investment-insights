@@ -121,22 +121,34 @@ function getCosineColorOpacity(r: number): string {
             <div>
                 <label>Return Period</label>
                 <br>
-                <input v-model.number="inputs.returnDays">
+                <div class="input-wrapper">
+                    <input v-model.number="inputs.returnDays" type="number">
+                    <span class="input-wrapper-text">days</span>
+                </div>
             </div>
             <div>
-                <label>Smooth N Days</label>
+                <label>Smooth</label>
                 <br>
-                <input v-model.number="inputs.smoothDays">
+                <div class="input-wrapper">
+                    <input v-model.number="inputs.smoothDays" type="number">
+                    <span class="input-wrapper-text">days</span>
+                </div>
             </div>
             <div>
                 <label>Return Extrapolation</label>
                 <br>
-                <input v-model.number="inputs.extrapolateDays">
+                <div class="input-wrapper">
+                    <input v-model.number="inputs.extrapolateDays">
+                    <span class="input-wrapper-text">days</span>
+                </div>
             </div>
             <div>
-                <label>drawdown days maintained</label>
+                <label>drawdown peak & trough</label>
                 <br>
-                <input v-model.number="inputs.drawdownDays">
+                <div class="input-wrapper">
+                    <input v-model.number="inputs.drawdownDays" style="width: 100%;">
+                    <span class="input-wrapper-text">days</span>
+                </div>
             </div>
             <div>
                 <label>Date Filter</label>

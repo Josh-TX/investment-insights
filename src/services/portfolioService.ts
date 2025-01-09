@@ -58,7 +58,7 @@ class PortfolioService {
         this._editIndex = index;
     }
     delete(portfolio: PortfolioTicker){
-        if (confirm("delete porfolio _" + portfolio.baseName + "?")){
+        if (confirm("delete porfolio $" + portfolio.baseName + "?")){
             this.portfolioTickers.value = this.portfolioTickers.value.filter(z => z != portfolio);
             localSettingsService.setValue("portfolioTickers", this.portfolioTickers.value);
         }
@@ -90,7 +90,7 @@ class PortfolioService {
             alert("error: missing ticker");
             return;
         }
-        var invalidHolding = holdings.find(z => z.ticker.startsWith("_"))
+        var invalidHolding = holdings.find(z => z.ticker.startsWith("$"))
         if (invalidHolding){
             alert("invalid ticker: " + invalidHolding.ticker + " (recursive portfolio tickers not allowed)");
             return;

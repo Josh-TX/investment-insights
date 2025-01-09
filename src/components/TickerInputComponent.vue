@@ -8,7 +8,7 @@ import { tickerInputs } from "../services/tickerInputService"
 <template>
     <div style="display: flex; gap: 16px; justify-content: space-between;">
         <div style="flex: 1; padding-right: 8px;" >
-            <label>Tickers (use $ for money market)</label>
+            <label>Ticker List</label>
             <br>
             <input v-model="tickerInputs.tickers" style="width: 100%">
         </div>

@@ -1,7 +1,8 @@
 import * as MathHelpers from "./math-helpers";
-import { Expression, Parser } from 'expr-eval';
+import * as ExpressionHelpers from "./expression-helpers"
+import type { Expression } from "expr-eval";
 
-export class PortfolioBuilder{
+export class WeightsGenerator{
 
     private _tickers: string[] = [];
     private _filterExpr: Expression | null = null;
@@ -12,14 +13,11 @@ export class PortfolioBuilder{
     }
 
     getWeights(tickers: string[], segmentCount: number, filterExpr: string, includePure: boolean): number[][] | null{
-        this._tickers = tickers.map(z => z.toLowerCase()).map(z => z == "$" ? "moneymarket" : z);
+        this._tickers = tickers.map(z => z.toLowerCase());
         this._filterExpr = null;
         this._includePure = includePure;
         if (filterExpr){
-            //replace `=` with `==`, `&` or `&&` with ` and `, `|` or `||` with ` or `
-            filterExpr = filterExpr.toLowerCase().replace(/(?<![<>!=])=(?![=])/g, '==').replace(/&&?/g, ' and ').replace(/\|\|?/g, ' or ').replace("$", ' moneymarket ');
-            var parser =  new Parser();
-            this._filterExpr = parser.parse(filterExpr);
+            this._filterExpr = ExpressionHelpers.getExpression(filterExpr);
         }
         this._loggedError = false;
         var comb = MathHelpers.combinations(segmentCount, tickers.length);

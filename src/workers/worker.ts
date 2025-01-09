@@ -1,22 +1,22 @@
 //this code runs in a web worker
 
 import type { CalculatePointsRequest, GetWeightsRequest, ScatterplotAxisInputs, ScatterplotPoint } from "../models/models";
-import { PortfolioBuilder } from "../services/portfolioBuilder";
+import { WeightsGenerator } from "../services/WeightsGenerator";
 import type { WorkerInputWrapper, WorkerOutputWrapper, WorkerOutputData, AllWorkerOperations } from "./worker-models";
 import * as PriceHelpers from '../services/price-helpers';
 import * as MathHelpers from '../services/math-helpers';
 
 var operations: AllWorkerOperations = {
     async getWeightss(input: GetWeightsRequest): Promise<number[][] | null> {
-        let builder = new PortfolioBuilder();
-        var weights = builder.getWeights(input.tickers, input.segmentCount, input.filterExpr, input.includePure);
+        let weightsGenerator = new WeightsGenerator();
+        var weights = weightsGenerator.getWeights(input.tickers, input.segmentCount, input.filterExpr, input.includePure);
         return weights;
     },
 
     async calculatePoints(request: CalculatePointsRequest): Promise<ScatterplotPoint[]> {
         
         var getValueFunc = function(inputs: ScatterplotAxisInputs, weights: number[]): number{
-            var portfolioFundData = PriceHelpers.getPortfolioFundData(request.fundDatas, weights, 365);
+            var portfolioFundData = PriceHelpers.getPortfolioFundData(request.fundDatas, weights, request.rebalanceDays);
             if (inputs.mode == "logReturnSD" || inputs.mode == "logLossRMS"){
                 var portfolioReturns = PriceHelpers.getReturns(portfolioFundData, inputs.returnDays);
                 portfolioReturns = PriceHelpers.getExtrapolatedReturns(portfolioReturns, inputs.returnDays, 365);

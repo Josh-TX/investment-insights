@@ -87,6 +87,17 @@ input[type="number"] {
   height: 1px;
 }
 
+.input-wrapper{
+  position: relative;
+}
+.input-wrapper-text{
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  font-size: 0.75em;
+  pointer-events: none;
+}
+
 /* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

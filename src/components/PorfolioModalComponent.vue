@@ -30,12 +30,15 @@ var isModalOpen = portfolioService.isModalOpen;
                         <input v-model="portfolioService.workingPorfolioTicker.value.baseName">
                     </div>
                     <div style="flex: 1">
-                        <label class="bigger-font">rebalance days</label>
+                        <label class="bigger-font">rebalance every</label>
                         <br>
-                        <input v-model.number="portfolioService.workingPorfolioTicker.value.rebalanceDays" type="number">
+                        <div class="input-wrapper">
+                            <input v-model.number="portfolioService.workingPorfolioTicker.value.rebalanceDays" style="width: 100%;" type="number">
+                            <span class="input-wrapper-text">days</span>
+                        </div>
                     </div>
                 </div>
-                <div class="invisible" :class="{visible: portfolioService.workingPorfolioTicker.value.baseName }">Porfolio Ticker will be <span>_{{ portfolioService.workingPorfolioTicker.value.baseName }}</span></div>
+                <div class="invisible" :class="{visible: portfolioService.workingPorfolioTicker.value.baseName }">Porfolio Ticker will be <span>${{ portfolioService.workingPorfolioTicker.value.baseName }}</span></div>
                 <div style="display: grid; grid-template-columns: auto auto auto; justify-content: center; gap: 4px 16px; margin-top: 12px;">
                     <div class="bigger-font" style="grid-column: 1 / span 3;">holdings</div>
                     <div>ticker</div>
@@ -52,7 +55,7 @@ var isModalOpen = portfolioService.isModalOpen;
                 <div class="h1" style="margin: 16px 0;"></div>
                 <div style="display: flex; justify-content: space-between; margin-top: 6px;">
                     <button @click="close">Cancel</button>
-                    <button @click="portfolioService.save()" v-if="portfolioService.mode.value == 'Create'">Create <span v-if="portfolioService.workingPorfolioTicker.value.baseName">_{{ portfolioService.workingPorfolioTicker.value.baseName }}</span></button>
+                    <button @click="portfolioService.save()" v-if="portfolioService.mode.value == 'Create'">Create <span v-if="portfolioService.workingPorfolioTicker.value.baseName">${{ portfolioService.workingPorfolioTicker.value.baseName }}</span></button>
                     <button @click="portfolioService.save()" v-if="portfolioService.mode.value == 'Edit'">Save Changes</button>
                 </div>
             </div>

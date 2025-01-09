@@ -3,7 +3,7 @@ import { TickerInputs } from "../models/models";
 import { localSettingsService } from "./localSettingsService";
 
 export var tickerInputs: Reactive<TickerInputs> = reactive({
-    tickers: (localSettingsService.getValue("tickers") || "VFIAX VBTLX GLD AMZN _examplePortfolio")
+    tickers: (localSettingsService.getValue("tickers") || "VFIAX VBTLX GLD AMZN $examplePortfolio")
 });
 
 watch(() => tickerInputs.tickers, () => {

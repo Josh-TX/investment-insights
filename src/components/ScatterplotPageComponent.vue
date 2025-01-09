@@ -10,13 +10,13 @@ import { getPriceHistory } from '../services/priceLoader';
 import ScatterplotChart from './ScatterplotChart.vue';
 import { debounce } from '../services/debouncer';
 import { getScatterplotDataContainer } from '../services/scatterplotBuilder';
-import { Parser } from 'expr-eval';
 import ScatterplotInputComponent from './ScatterplotInputComponent.vue';
-import { portfolioService } from '../services/portfolioService'
+import { portfolioService } from '../services/portfolioService';
+import * as ExpressionHelpers from "../services/expression-helpers";
 
 
 var segmentCount = ref(localSettingsService.getValue("segmentCount") ?? 5);
-var filterExpr = ref(localSettingsService.getValue("filterExpr") ?? "AMZN < 4 and _examplePortfolio in [0,5]");
+var filterExpr = ref(localSettingsService.getValue("filterExpr") ?? "AMZN < 4 and $examplePortfolio in [0,5]");
 var highlightExpr = ref(localSettingsService.getValue("highlightExpr") ?? "");
 var dataContainer = ref<ScatterplotDataContainer | null>(null);
 var includePure = ref<boolean>(localSettingsService.getValue("includePure") ?? false);
@@ -24,44 +24,66 @@ var forceStartYearEnabled = ref<boolean>(localSettingsService.getValue("forceSta
 var forceStartYear = ref<number | null>(localSettingsService.getValue("forceStartYear") ?? null);
 var startDateMessage = ref<string>("");
 var startDateWarning = ref<boolean>(false);
+var regenerateNeeded = ref<boolean>(true);
+var rebalanceDays = ref<number>(localSettingsService.getValue("rebalanceDays") ?? 365);
 
 var axisInputsY: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsY") || { mode: "return", returnDays: 30, smoothDays: 30, drawdownDays: 1, riskAdjSD: -0.5});
 var axisInputsX: Reactive<ScatterplotAxisInputs> = reactive(localSettingsService.getValue("scatterplotAxisInputsX") || { mode: "logReturnSD", returnDays: 30, smoothDays: 30, drawdownDays: 1, riskAdjSD: -0.5});
 var highlightedIndexes: ShallowRef<number[]> = shallowRef([]);
 var selectedWeightss: ShallowRef<number[][]> = shallowRef([]);
+var _errorDebounce = false;
 
 watch(segmentCount, () => {
     localSettingsService.setValue("segmentCount", segmentCount.value);
+    regenerateNeeded.value = true;
 });
 watch(filterExpr, () => {
     localSettingsService.setValue("filterExpr", filterExpr.value);
+    regenerateNeeded.value = true;
 });
 watch(forceStartYearEnabled, () => {
     localSettingsService.setValue("forceStartYearEnabled", forceStartYearEnabled.value);
+    regenerateNeeded.value = true;
 });
 watch(forceStartYear, () => {
     localSettingsService.setValue("forceStartYear", forceStartYear.value);
+    regenerateNeeded.value = true;
 });
 watch(includePure, () => {
     localSettingsService.setValue("includePure", includePure.value);
+    regenerateNeeded.value = true;
+});
+watch(rebalanceDays, () => {
+    localSettingsService.setValue("rebalanceDays", rebalanceDays.value);
+    regenerateNeeded.value = true;
 });
 watch(highlightExpr, () => {
     localSettingsService.setValue("highlightExpr", highlightExpr.value);
+    _errorDebounce = false;
     debounce("highlightExpr", 1000, updateHighlightedIndexes)
 });
 watch(axisInputsX, () => {
-    localSettingsService.setValue("scatterplotAxisInputsX", axisInputsX)
+    localSettingsService.setValue("scatterplotAxisInputsX", axisInputsX);
+    regenerateNeeded.value = true;
 });
 watch(axisInputsY, () => {
-    localSettingsService.setValue("scatterplotAxisInputsY", axisInputsY)
+    localSettingsService.setValue("scatterplotAxisInputsY", axisInputsY);
+    regenerateNeeded.value = true;
 });
-watch(axisInputsY, () => {
-    localSettingsService.setValue("scatterplotAxisInputsY", axisInputsY)
-});
+watch(() => tickerInputs.tickers, () => {
+    regenerateNeeded.value = true;
+})
 
 
 async function generate() {
     var tickerArray = tickerInputs.tickers.split(/[^a-zA-Z0-9_$]+/).filter(z => !!z);
+    if (filterExpr.value){
+        var error = ExpressionHelpers.getExpressionErrors(filterExpr.value, tickerArray);
+        if (error){
+            alert("filter " + error);
+            return;
+        }
+    }
     var promises = tickerArray.map(z => getPriceHistory(z));
     var fundDatas = await Promise.all(promises);
     var forceStartDayNumber = forceStartYearEnabled.value && forceStartYear.value != null ? Math.floor(new Date(forceStartYear.value, 0, 1).getTime() / 86400000) : null;
@@ -82,7 +104,8 @@ async function generate() {
             startDateWarning.value = true; //no other funds are within 2 years of the most recent
         }
     }
-    dataContainer.value =  await getScatterplotDataContainer(tickerArray, fundDatas, segmentCount.value, filterExpr.value, axisInputsX, axisInputsY, includePure.value, forceStartDayNumber);
+    regenerateNeeded.value = false;
+    dataContainer.value =  await getScatterplotDataContainer(tickerArray, fundDatas, segmentCount.value, filterExpr.value, axisInputsX, axisInputsY, rebalanceDays.value, includePure.value, forceStartDayNumber);
     updateHighlightedIndexes();
 }
 
@@ -94,9 +117,21 @@ function updateHighlightedIndexes() {
     highlightedIndexes.value = [];
     var tickerArray = tickerInputs.tickers.split(/[^a-zA-Z$]+/).filter(z => !!z);
     if (highlightExpr.value) {
-        var fixedExprStr = highlightExpr.value.toLowerCase().replace(/(?<![<>!=])=(?![=])/g, '==').replace(/&&?/g, ' and ').replace(/\|\|?/g, ' or ').replace("$", ' moneymarket ');
-        var parsedExpr = new Parser().parse(fixedExprStr);
-        var lowercaseTickers = tickerArray.map(z => z.toLowerCase()).map(z => z == "$" ? "moneymarket" : z);
+        var error = ExpressionHelpers.getExpressionErrors(highlightExpr.value, tickerArray);
+        if (error){
+            //don't want to interupt the user while typing, so give another them second
+            if (!_errorDebounce){
+                _errorDebounce = true;
+                debounce("highlightExpr", 1000, updateHighlightedIndexes);
+                return;
+            } else {
+                alert("highlight " + error);
+                return;
+            }
+        }
+
+        var parsedExpr = ExpressionHelpers.getExpression(highlightExpr.value);
+        var lowercaseTickers = tickerArray.map(z => z.toLowerCase());
         var loggedError = false;
         for (var i = 0; i < dataContainer.value.points.length; i++) {
             var point = dataContainer.value.points[i];
@@ -187,6 +222,14 @@ async function pointClicked(weightss: number[][]) {
                 </select>
             </div>
             <div>
+                <label>Rebalance Every</label>
+                <br>
+                <div class="input-wrapper">
+                    <input style="max-width: 120px;;" v-model="rebalanceDays">
+                    <span class="input-wrapper-text">days</span>
+                </div>
+            </div>
+            <div>
                 <label><input type="checkbox" class="checkbox-fix" v-model="forceStartYearEnabled" style="margin: 0 6px 0 0;">Force Start Year</label>
                 <br>
                 <input type="number" style="max-width: 125px;" :disabled="!forceStartYearEnabled" :placeholder="forceStartYearEnabled ? '' : '(disabled)'" v-model="forceStartYear">
@@ -202,7 +245,7 @@ async function pointClicked(weightss: number[][]) {
                 <input v-model="filterExpr" style="width: 100%">
             </div>
             <div style="padding-top: 7px">
-                <button @click="generate" style="margin-bottom: -1px;">Generate</button>
+                <button @click="generate" style="margin-bottom: -1px;" :class="{primary: regenerateNeeded}">Generate</button>
             </div>
         </div>
         <div class="h1" style="margin: 8px 0 2px 0;"></div>
@@ -333,5 +376,9 @@ async function pointClicked(weightss: number[][]) {
 
 .warning{
     color: rgb(255, 255, 103)
+}
+
+.primary{
+    background-color: #086eb3;
 }
 </style>
