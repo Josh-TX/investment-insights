@@ -7,17 +7,18 @@ export function getExpression(expr: string): Expression {
     return parser.parse(expr);
 }
 
-export function getExpressionErrors(expr: string, variables: string[]): string | null {
+export function getExpressionErrors(expr: string, tickers: string[]): string | null {
     try {
-        var fixedExpr = expr.replace(/(?<![<>!=])=(?![=])/g, '==').replace(/&&?/g, ' and ').replace(/\|\|?/g, ' or ');
-        var parsedExpr = new Parser().parse(fixedExpr);
+        var parsedExpr = getExpression(expr)
         var exprVariables = parsedExpr.variables();
-        var missingVar = exprVariables.find(z => !variables.some(zz => zz.toLowerCase() == z.toLowerCase()));
+        var missingVar = exprVariables.find(exprVar => !tickers.some(ticker => ticker.toLowerCase() == exprVar));
         if (missingVar){
-            return `expression contains ${missingVar}, which is not in the ticker list`
+            var startIndex = expr.toLowerCase().indexOf(missingVar);
+            var originalCasing = expr.slice(startIndex, startIndex + missingVar.length)
+            return `expression contains ${originalCasing}, which is not in the ticker list`
         }
         var obj: {[ticker: string]: number} = {};
-        variables.forEach(z => obj[z.toLowerCase()] = 1);
+        tickers.forEach(z => obj[z.toLowerCase()] = 1);
         getExpression(expr).evaluate(obj);
     } catch (e: any) {
         return "expression cannot be parsed (ensure no missing operators or operands)"
